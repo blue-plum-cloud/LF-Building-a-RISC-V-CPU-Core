@@ -46,12 +46,31 @@
    // YOUR CODE HERE
    // program counter
    $next_pc[31:0] = 
-   	$reset == 0 ? $pc[31:0]:
+      $reset == 0 ? $pc[31:0]:
       0;
       
    $pc[31:0] = (>>1$next_pc[31:0] + 32'd4);
    
-   // instruction memory
+   // fetch from instruction memory
+   `READONLY_MEM($pc[31:0], $$instr[31:0]);
+   
+   // instruction decode
+   // instr[1:0] must be 2'b11 for valid instructions for RV32I
+   $opcode[6:0] = $instr[6:0];
+   $is_u_instr = $opcode[6:2] ==? 5'b0x101;
+   
+   $is_i_instr = $opcode[6:2] ==? 5'b00xxx || $opcode[6:2] == 5'b11001;
+   $is_s_instr = $opcode[6:2] ==? 5'b0100x;
+   $is_r_instr = $opcode[6:2] ==? 5'b01xxx;
+   $is_b_instr = $opcode[6:2] == 5'b11000;
+   $is_j_instr = $opcode[6:2] == 5'b11011;
+   
+   // extract rest of fields
+   
+   
+   $rs2_valid = $is_r_instr || $is_s_instr || $is_b_instr;
+   $funct3_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr;
+   
    
    
    // Assert these to end simulation (before Makerchip cycle limit).
