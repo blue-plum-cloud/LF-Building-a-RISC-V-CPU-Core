@@ -66,11 +66,16 @@
    $is_j_instr = $opcode[6:2] == 5'b11011;
    
    // extract rest of fields
+   $rs2[4:0] = $instr[24:20];
+   $rs1[3:0] = $instr[19:15];
+   $funct3[2:0] = $instr[14:12];
+   $rd[4:0] = $instr[11:7];
    
    
    $rs2_valid = $is_r_instr || $is_s_instr || $is_b_instr;
-   $funct3_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr;
-   
+   $rs1_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr;
+   $rd_valid = $is_r_instr || $is_i_instr || $is_u_instr || $is_j_instr;
+   $imm_valid = !$is_r_instr;
    
    
    // Assert these to end simulation (before Makerchip cycle limit).
@@ -79,6 +84,7 @@
    
    //m4+rf(32, 32, $reset, $wr_en, $wr_index[4:0], $wr_data[31:0], $rd_en1, $rd_index1[4:0], $rd_data1, $rd_en2, $rd_index2[4:0], $rd_data2)
    //m4+dmem(32, 32, $reset, $addr[4:0], $wr_en, $wr_data[31:0], $rd_en, $rd_data)
+   `BOGUS_USE($rd $rd_valid $rs1 $rs1_valid $funct3 $rs2 $rs2_valid $imm_valid) 
    m4+cpu_viz()
 \SV
    endmodule
