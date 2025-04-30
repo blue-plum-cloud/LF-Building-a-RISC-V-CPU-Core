@@ -19,18 +19,19 @@
    //  x13 (a3): 1..10
    //  x14 (a4): Sum
    // 
-   m4_asm(ADDI, x14, x0, 0)             // Initialize sum register a4 with 0
-   m4_asm(ADDI, x12, x0, 1010)          // Store count of 10 in register a2.
-   m4_asm(ADDI, x13, x0, 1)             // Initialize loop count register a3 with 0
-   // Loop:
-   m4_asm(ADD, x14, x13, x14)           // Incremental summation
-   m4_asm(ADDI, x13, x13, 1)            // Increment loop count by 1
-   m4_asm(BLT, x13, x12, 1111111111000) // If a3 is less than a2, branch to label named <loop>
-   // Test result value in x14, and set x31 to reflect pass/fail.
-   m4_asm(ADDI, x30, x14, 111111010100) // Subtract expected value of 44 to set x30 to 1 if and only iff the result is 45 (1 + 2 + ... + 9).
-   //m4_asm(ADDI, x0, x0, 1)
-   m4_asm(BGE, x0, x0, 0) // Done. Jump to itself (infinite loop). (Up to 20-bit signed immediate plus implicit 0 bit (unlike JALR) provides byte address; last immediate bit should also be 0)
-   m4_asm_end()
+   // m4_asm(ADDI, x14, x0, 0)             // Initialize sum register a4 with 0
+   // m4_asm(ADDI, x12, x0, 1010)          // Store count of 10 in register a2.
+   // m4_asm(ADDI, x13, x0, 1)             // Initialize loop count register a3 with 0
+   // // Loop:
+   // m4_asm(ADD, x14, x13, x14)           // Incremental summation
+   // m4_asm(ADDI, x13, x13, 1)            // Increment loop count by 1
+   // m4_asm(BLT, x13, x12, 1111111111000) // If a3 is less than a2, branch to label named <loop>
+   // // Test result value in x14, and set x31 to reflect pass/fail.
+   // m4_asm(ADDI, x30, x14, 111111010100) // Subtract expected value of 44 to set x30 to 1 if and only iff the result is 45 (1 + 2 + ... + 9).
+   // //m4_asm(ADDI, x0, x0, 1)
+   // m4_asm(BGE, x0, x0, 0) // Done. Jump to itself (infinite loop). (Up to 20-bit signed immediate plus implicit 0 bit (unlike JALR) provides byte address; last immediate bit should also be 0)
+   // m4_asm_end()
+   m4_test_prog()
    m4_define(['M4_MAX_CYC'], 50)
    //---------------------------------------------------------------------------------
 
@@ -50,8 +51,9 @@
       $taken_br ? $br_tgt_pc[31:0]:
       $reset == 1 ? 0:
       $pc[31:0] + 32'd4;
-      
+
    $pc[31:0] = (>>1$next_pc[31:0]);
+   
    
    // fetch from instruction memory
    `READONLY_MEM($pc[31:0], $$instr[31:0]);
@@ -73,12 +75,10 @@
    $funct3[2:0] = $instr[14:12];
    $rd[4:0] = $instr[11:7];
    
-   
    $rs2_valid = $is_r_instr || $is_s_instr || $is_b_instr;
    $rs1_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr;
    $rd_valid = ($is_r_instr || $is_i_instr || $is_u_instr || $is_j_instr) && $rd != 5'b0;
    $imm_valid = !$is_r_instr;
-   
    
    $imm[31:0] = 
       $is_i_instr ? { {21{$instr[31]}}, $instr[30:20]}:
@@ -89,6 +89,7 @@
       32'd0;
    
    $dec_bits[10:0] = {$instr[30], $funct3[2:0], $opcode[6:0]};
+   // branch
    $is_beq = $dec_bits ==? 11'bx_000_1100011;
    $is_bne = $dec_bits ==? 11'bx_001_1100011;
    $is_blt = $dec_bits ==? 11'bx_100_1100011;
@@ -96,9 +97,37 @@
    $is_bltu = $dec_bits ==? 11'bx_110_1100011;
    $is_bgeu = $dec_bits ==? 11'bx_111_1100011;
    
+   // alu
    $is_addi = $dec_bits ==? 11'bx_000_0010011;
-   $is_add = $dec_bits ==? 11'bx_000_0110011;
+   $is_add = $dec_bits ==? 11'b0_000_0110011;
+   $is_sub = $dec_bits ==? 11'b1_000_0110011;
+   $is_sll = $dec_bits ==? 11'b0_001_0110011;
+   $is_slt = $dec_bits ==? 11'b0_010_0110011;
+   $is_sltu = $dec_bits ==? 11'b0_011_0110011;
+   $is_xor = $dec_bits ==? 11'b0_100_0110011;
+   $is_srl = $dec_bits ==? 11'b0_101_0110011;
+   $is_sra = $dec_bits ==? 11'b1_101_0110011;
+   $is_or = $dec_bits ==? 11'b0_110_0110011;
+   $is_and = $dec_bits ==? 11'b0_111_0110011;
    
+   
+   // comparator
+   $is_slti = $dec_bits ==? 11'bx_010_0010011;
+   $is_sltiu = $dec_bits ==? 11'bx_011_0010011;
+   $is_xori = $dec_bits ==? 11'bx_100_0010011;
+   $is_ori = $dec_bits ==? 11'bx_110_0010011;
+   $is_andi = $dec_bits ==? 11'bx_111_0010011;
+   $is_slli = $dec_bits ==? 11'b0_001_0010011;
+   $is_srli = $dec_bits ==? 11'b0_101_0010011;
+   $is_srai = $dec_bits ==? 11'b1_101_0010011;
+   
+   
+   
+   // jump
+   $is_lui = $dec_bits ==? 11'bx_xxx_0110111;
+   $is_auipc = $dec_bits ==? 11bx_xxx_0010111;
+   $is_jal = $dec_bits ==? 11bx_xxx_1101111;
+   $is_jalr = $dec_bits ==? 11bx_000_1100111;
    
    // Arithmetic Logic Unit
    $result[31:0] =
